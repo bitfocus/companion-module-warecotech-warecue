@@ -1,6 +1,6 @@
 {
 	"name": "companion-module-warecotech-warecue",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"main": "src/main.ts",
 	"description": "Companion module for WareCue — scene playout and multi-display show control",
 	"scripts": {
@@ -14,10 +14,10 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/warecotech/warecue-companion-module.git"
+		"url": "git+https://github.com/warecotech/companion-module-warecotech-warecue.git"
 	},
 	"bugs": {
-		"url": "https://github.com/warecotech/warecue-companion-module/issues"
+		"url": "https://github.com/warecotech/companion-module-warecotech-warecue/issues"
 	},
 	"engines": {
 		"node": ">=18.12"
