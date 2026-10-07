@@ -28,6 +28,8 @@ export interface FeedbackCue {
 	index: number
 	num: string
 	name: string
+	/** Disabled cues are skipped by GO. */
+	disabled: boolean
 }
 
 export interface FeedbackTimer {
@@ -45,6 +47,12 @@ export interface FeedbackState {
 	outputs: FeedbackOutput[]
 	scenes: FeedbackScene[]
 	cues: FeedbackCue[]
+	/** The armed cue — what the next GO / take will fire. */
+	standbyCueId: string | null
+	standbyCueName: string | null
+	/** The on-air cue — the last one taken. */
+	playheadCueId: string | null
+	playheadCueName: string | null
 	timers: FeedbackTimer[]
 	master: { blackout: boolean; liveOutputs: number }
 }
@@ -55,6 +63,10 @@ export function emptyState(): FeedbackState {
 		outputs: [],
 		scenes: [],
 		cues: [],
+		standbyCueId: null,
+		standbyCueName: null,
+		playheadCueId: null,
+		playheadCueName: null,
 		timers: [],
 		master: { blackout: false, liveOutputs: 0 },
 	}

@@ -1,6 +1,6 @@
 import type { DropdownChoice } from '@companion-module/base'
 import type { WareCueInstance } from './main'
-import type { FeedbackOutput } from './state'
+import type { FeedbackCue, FeedbackOutput } from './state'
 
 const NONE: DropdownChoice = { id: '', label: '(connect to WareCue)' }
 
@@ -53,4 +53,29 @@ export function resolveSceneName(self: WareCueInstance, ref: string): string | u
 	if (!needle) return undefined
 	const scene = self.state.scenes.find((s) => s.name === needle || String(s.index) === needle || s.id === needle)
 	return scene?.name
+}
+
+/**
+ * Resolve a cue ref to the cue, in the same priority order as WareCue's own
+ * `resolveCueRef` (cue number, then id, then name case-insensitively, then
+ * 1-based position) — so a button lights the same cue it fires.
+ */
+export function resolveCue(self: WareCueInstance, ref: string): FeedbackCue | undefined {
+	const needle = ref.trim()
+	if (!needle) return undefined
+	const cues = self.state.cues
+	const lower = needle.toLowerCase()
+	return (
+		cues.find((c) => c.num === needle) ??
+		cues.find((c) => c.id === needle) ??
+		cues.find((c) => c.name.toLowerCase() === lower) ??
+		(/^\d+$/.test(needle) ? cues.find((c) => c.index === Number(needle)) : undefined)
+	)
+}
+
+/** 0-based position of a cue in the stack — what `cue.setStandby` expects. */
+export function resolveCueIndex(self: WareCueInstance, ref: string): number | null {
+	const cue = resolveCue(self, ref)
+	if (!cue) return null
+	return self.state.cues.indexOf(cue)
 }

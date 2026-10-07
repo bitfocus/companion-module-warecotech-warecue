@@ -1,6 +1,14 @@
 import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { WareCueInstance } from './main'
-import { outputChoices, resolveOutput, resolveSceneName, sceneChoices, timerChoices } from './choices'
+import {
+	cueChoices,
+	outputChoices,
+	resolveCue,
+	resolveOutput,
+	resolveSceneName,
+	sceneChoices,
+	timerChoices,
+} from './choices'
 
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
@@ -61,6 +69,46 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [outputField],
 			callback: (fb) => resolveOutput(self, String(fb.options.output ?? ''))?.displayMissing === true,
+		},
+		cue_is_standby: {
+			type: 'boolean',
+			name: 'Cue: is armed (standby / next GO)',
+			description: 'True when the given cue is the armed standby — what the next GO will fire.',
+			defaultStyle: { bgcolor: AMBER, color: BLACK },
+			options: [
+				{
+					id: 'cue',
+					type: 'dropdown',
+					label: 'Cue',
+					default: self.state.cues[0]?.name ?? '',
+					choices: cueChoices(self),
+					allowCustom: true,
+				},
+			],
+			callback: (fb) => {
+				const cue = resolveCue(self, String(fb.options.cue ?? ''))
+				return !!cue && !!self.state.standbyCueId && cue.id === self.state.standbyCueId
+			},
+		},
+		cue_is_live: {
+			type: 'boolean',
+			name: 'Cue: is on air (playhead)',
+			description: 'True when the given cue is the last one taken (the on-air cue).',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{
+					id: 'cue',
+					type: 'dropdown',
+					label: 'Cue',
+					default: self.state.cues[0]?.name ?? '',
+					choices: cueChoices(self),
+					allowCustom: true,
+				},
+			],
+			callback: (fb) => {
+				const cue = resolveCue(self, String(fb.options.cue ?? ''))
+				return !!cue && !!self.state.playheadCueId && cue.id === self.state.playheadCueId
+			},
 		},
 		master_blackout: {
 			type: 'boolean',

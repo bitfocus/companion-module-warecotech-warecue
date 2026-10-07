@@ -9,6 +9,10 @@ export function updateVariables(self: WareCueInstance): void {
 		{ variableId: 'output_count', name: 'Output count' },
 		{ variableId: 'scene_count', name: 'Scene count' },
 		{ variableId: 'cue_count', name: 'Cue count' },
+		{ variableId: 'cue_standby_num', name: 'Standby cue number (next GO)' },
+		{ variableId: 'cue_standby_name', name: 'Standby cue name (next GO)' },
+		{ variableId: 'cue_active_num', name: 'On-air cue number (playhead)' },
+		{ variableId: 'cue_active_name', name: 'On-air cue name (playhead)' },
 		{ variableId: 'timer_count', name: 'Timer count' },
 	]
 
@@ -34,12 +38,18 @@ export function updateVariables(self: WareCueInstance): void {
 
 export function setVariableValues(self: WareCueInstance): void {
 	const s = self.state
+	const standbyCue = s.standbyCueId ? s.cues.find((c) => c.id === s.standbyCueId) : undefined
+	const activeCue = s.playheadCueId ? s.cues.find((c) => c.id === s.playheadCueId) : undefined
 	const values: CompanionVariableValues = {
 		master_blackout: s.master.blackout ? 'on' : 'off',
 		master_live_outputs: s.master.liveOutputs,
 		output_count: s.outputs.length,
 		scene_count: s.scenes.length,
 		cue_count: s.cues.length,
+		cue_standby_num: standbyCue?.num ?? '—',
+		cue_standby_name: s.standbyCueName ?? '—',
+		cue_active_num: activeCue?.num ?? '—',
+		cue_active_name: s.playheadCueName ?? '—',
 		timer_count: s.timers.length,
 	}
 	for (const o of s.outputs) {

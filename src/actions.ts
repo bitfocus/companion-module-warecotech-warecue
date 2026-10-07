@@ -1,6 +1,14 @@
 import type { CompanionActionDefinitions, CompanionActionEvent } from '@companion-module/base'
 import type { WareCueInstance } from './main'
-import { BUS_CHOICES, TOGGLE_CHOICES, cueChoices, outputChoices, sceneChoices, timerChoices } from './choices'
+import {
+	BUS_CHOICES,
+	TOGGLE_CHOICES,
+	cueChoices,
+	outputChoices,
+	resolveCueIndex,
+	sceneChoices,
+	timerChoices,
+} from './choices'
 
 export function updateActions(self: WareCueInstance): void {
 	// Parse a dropdown/custom value, expanding any $(…) variables it contains.
@@ -98,6 +106,48 @@ export function updateActions(self: WareCueInstance): void {
 			],
 			callback: async (ev) => void self.send('cue.fire', { cueRef: await str(ev, 'cue') }),
 		},
+		cue_go: {
+			name: 'Cue: GO (take standby)',
+			description: 'Fire the armed standby cue and advance to the next one — the operator Enter / Space.',
+			options: [],
+			callback: async () => void self.send('cue.go'),
+		},
+		cue_standby_next: {
+			name: 'Cue: standby → next',
+			description: 'Arm the next cue in the stack (does not fire).',
+			options: [],
+			callback: async () => void self.send('cue.moveStandby', { delta: 1 }),
+		},
+		cue_standby_prev: {
+			name: 'Cue: standby → previous',
+			description: 'Arm the previous cue in the stack (does not fire).',
+			options: [],
+			callback: async () => void self.send('cue.moveStandby', { delta: -1 }),
+		},
+		cue_set_standby: {
+			name: 'Cue: arm (set standby)',
+			description: 'Arm a specific cue so the next GO fires it.',
+			options: [
+				{
+					id: 'cue',
+					type: 'dropdown',
+					label: 'Cue',
+					default: self.state.cues[0]?.name ?? '',
+					choices: cueChoices(self),
+					allowCustom: true,
+				},
+			],
+			callback: async (ev) => {
+				const index = resolveCueIndex(self, await str(ev, 'cue'))
+				if (index !== null) void self.send('cue.setStandby', { index })
+			},
+		},
+		cue_sync_standby: {
+			name: 'Cue: sync standby to playhead',
+			description: 'Snap standby back to the next enabled cue after the on-air cue.',
+			options: [],
+			callback: async () => void self.send('cue.syncStandby'),
+		},
 		cue_pause: {
 			name: 'Cue: pause',
 			options: [],
@@ -147,6 +197,21 @@ export function updateActions(self: WareCueInstance): void {
 			name: 'Timer: reset',
 			options: [timerField],
 			callback: async (ev) => void self.send('timer.reset', { timerRef: await str(ev, 'timer') }),
+		},
+		timer_set: {
+			name: 'Timer: set duration',
+			description: 'Set a timer to an absolute duration (the app’s 5m / 10m / 60m buttons).',
+			options: [
+				timerField,
+				{ id: 'minutes', type: 'number', label: 'Minutes', default: 5, min: 0, max: 1440 },
+				{ id: 'seconds', type: 'number', label: 'Seconds', default: 0, min: 0, max: 59 },
+			],
+			callback: async (ev) =>
+				void self.send('timer.set', {
+					timerRef: await str(ev, 'timer'),
+					minutes: Number(ev.options.minutes),
+					seconds: Number(ev.options.seconds),
+				}),
 		},
 		timer_adjust: {
 			name: 'Timer: adjust (± seconds)',
