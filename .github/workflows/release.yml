@@ -1,0 +1,61 @@
+name: Release
+
+# Tags and publishes a GitHub release whenever main carries a version that has
+# no tag yet — bump "version" in package.json + companion/manifest.json and
+# merge, and v<version> is created with the built module attached.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read version
+        id: version
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          manifest=$(node -p "require('./companion/manifest.json').version")
+          if [ "$pkg" != "$manifest" ]; then
+            echo "::error::package.json ($pkg) and companion/manifest.json ($manifest) versions differ"
+            exit 1
+          fi
+          echo "tag=v$pkg" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$pkg" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v$pkg is already tagged; nothing to release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists == 'false'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.version.outputs.exists == 'false'
+        run: npm ci
+      - if: steps.version.outputs.exists == 'false'
+        run: npm run lint
+      - if: steps.version.outputs.exists == 'false'
+        run: npm run build
+      - name: Tag and publish release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" *.tgz \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --generate-notes
