@@ -14,10 +14,10 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/steve-singpods/warecue-companion-module.git"
+		"url": "git+https://github.com/warecotech/warecue-companion-module.git"
 	},
 	"bugs": {
-		"url": "https://github.com/steve-singpods/warecue-companion-module/issues"
+		"url": "https://github.com/warecotech/warecue-companion-module/issues"
 	},
 	"engines": {
 		"node": ">=18.12"

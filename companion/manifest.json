@@ -5,8 +5,8 @@
 	"description": "Scene playout and multi-display show control for WareCue",
 	"version": "1.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/steve-singpods/warecue-companion-module.git",
-	"bugs": "https://github.com/steve-singpods/warecue-companion-module/issues",
+	"repository": "git+https://github.com/warecotech/warecue-companion-module.git",
+	"bugs": "https://github.com/warecotech/warecue-companion-module/issues",
 	"maintainers": [
 		{
 			"name": "WareCo.Tech",
