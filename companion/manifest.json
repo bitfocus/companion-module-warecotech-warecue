@@ -3,7 +3,7 @@
 	"name": "warecotech-warecue",
 	"shortname": "WareCue",
 	"description": "Scene playout and multi-display show control for WareCue",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/warecotech/companion-module-warecotech-warecue.git",
 	"bugs": "https://github.com/warecotech/companion-module-warecotech-warecue/issues",
