@@ -1,10 +1,13 @@
 import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
 import type { WareCueInstance } from './main'
 import {
+	canTakePreview,
 	cueChoices,
 	outputChoices,
+	previewSceneOf,
 	resolveCue,
 	resolveOutput,
+	resolveScene,
 	resolveSceneName,
 	sceneChoices,
 	timerChoices,
@@ -15,6 +18,7 @@ const BLACK = combineRgb(0, 0, 0)
 const GREEN = combineRgb(0, 153, 51)
 const RED = combineRgb(204, 0, 0)
 const AMBER = combineRgb(204, 128, 0)
+const TEAL = combineRgb(0, 170, 150)
 
 export function updateFeedbacks(self: WareCueInstance): void {
 	const outputField = {
@@ -25,6 +29,14 @@ export function updateFeedbacks(self: WareCueInstance): void {
 		choices: outputChoices(self),
 		allowCustom: true,
 	}
+	const sceneOption = {
+		id: 'scene',
+		type: 'dropdown' as const,
+		label: 'Scene',
+		default: self.state.scenes[0]?.name ?? '',
+		choices: sceneChoices(self),
+		allowCustom: true,
+	}
 
 	const feedbacks: CompanionFeedbackDefinitions = {
 		output_scene_active: {
@@ -32,21 +44,34 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			name: 'Output: scene is on air',
 			description: 'True when the given scene is the active scene on the given output.',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
-			options: [
-				outputField,
-				{
-					id: 'scene',
-					type: 'dropdown',
-					label: 'Scene',
-					default: self.state.scenes[0]?.name ?? '',
-					choices: sceneChoices(self),
-					allowCustom: true,
-				},
-			],
+			options: [outputField, sceneOption],
 			callback: (fb) => {
 				const output = resolveOutput(self, String(fb.options.output ?? ''))
 				const wanted = resolveSceneName(self, String(fb.options.scene ?? '')) ?? String(fb.options.scene ?? '')
 				return !!output && output.activeSceneName === wanted
+			},
+		},
+		output_scene_preview: {
+			type: 'boolean',
+			name: 'Output: scene is in preview',
+			description: 'True when the given scene is armed in the Multi-View preview for the given output.',
+			defaultStyle: { bgcolor: TEAL, color: BLACK },
+			options: [outputField, sceneOption],
+			callback: (fb) => {
+				const output = resolveOutput(self, String(fb.options.output ?? ''))
+				const scene = resolveScene(self, String(fb.options.scene ?? ''))
+				return !!output && !!scene && previewSceneOf(self, output)?.id === scene.id
+			},
+		},
+		output_take_ready: {
+			type: 'boolean',
+			name: 'Output: TAKE ready',
+			description: 'True when a preview scene is armed, differs from program, and the output is not following another.',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [outputField],
+			callback: (fb) => {
+				const output = resolveOutput(self, String(fb.options.output ?? ''))
+				return !!output && canTakePreview(self, output)
 			},
 		},
 		output_blackout: {

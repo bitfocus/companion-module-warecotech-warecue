@@ -12,6 +12,13 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 	config: ModuleConfig = defaultConfig()
 	state: FeedbackState = emptyState()
 	connection: WareCueConnection | null = null
+	/**
+	 * Multi-View preview scene armed per output id, held in Companion. WareCue's
+	 * own preview well is window-only, so these buttons keep their own armed
+	 * scene and TAKE sends it with `output.scene` — exactly what the app's
+	 * TAKE button sends.
+	 */
+	previewByOutput = new Map<string, string>()
 	#membershipKey = ''
 
 	async init(config: ModuleConfig): Promise<void> {
@@ -40,9 +47,18 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 		return this.connection.send(command, args)
 	}
 
+	/** Arm (or clear) an output's preview scene and refresh what shows it. */
+	setPreview(outputId: string, sceneId: string | null): void {
+		if (sceneId) this.previewByOutput.set(outputId, sceneId)
+		else this.previewByOutput.delete(outputId)
+		setVariableValues(this)
+		this.checkFeedbacks('output_scene_preview', 'output_take_ready')
+	}
+
 	#connect(): void {
 		this.connection?.destroy()
 		this.state = emptyState()
+		this.previewByOutput.clear()
 		this.#membershipKey = ''
 		this.connection = new WareCueConnection(this.config.host, this.config.port ?? 8090, this.config.token ?? '', {
 			onState: (s) => this.#onState(s),
@@ -71,6 +87,12 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 
 	#onState(state: FeedbackState): void {
 		this.state = state
+		// Drop armed previews whose scene or output is gone, as the app does.
+		const sceneIds = new Set(state.scenes.map((s) => s.id))
+		const outputIds = new Set(state.outputs.map((o) => o.id))
+		for (const [outputId, sceneId] of this.previewByOutput) {
+			if (!outputIds.has(outputId) || !sceneIds.has(sceneId)) this.previewByOutput.delete(outputId)
+		}
 		const key = this.#membershipKeyOf(state)
 		if (key !== this.#membershipKey) {
 			this.#membershipKey = key

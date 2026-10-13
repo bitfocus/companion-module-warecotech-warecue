@@ -11,6 +11,9 @@ const DARK = combineRgb(27, 27, 27)
 const GREEN = combineRgb(0, 153, 51)
 const GO_GREEN = combineRgb(0, 102, 34)
 const AMBER = combineRgb(204, 128, 0)
+const RED = combineRgb(204, 0, 0)
+const TAKE_DIM = combineRgb(90, 20, 20)
+const TEAL = combineRgb(0, 170, 150)
 
 // Fixed, show-agnostic presets. They reference cues / scenes / outputs / timers
 // by number, so a button dropped onto a Stream Deck maps to that slot in
@@ -58,6 +61,15 @@ export function updatePresets(self: WareCueInstance): void {
 		name: 'Sync standby to playhead',
 		style: { text: 'SYNC\\nSTBY', size: '14', color: WHITE, bgcolor: DARK },
 		steps: [{ down: [{ actionId: 'cue_sync_standby', options: {} }], up: [] }],
+		feedbacks: [],
+	})
+
+	add('cue_rearm', {
+		type: 'button',
+		category: 'Cue stack',
+		name: 'Re-arm live cue',
+		style: { text: 'RE-\\nARM', size: '18', color: WHITE, bgcolor: DARK },
+		steps: [{ down: [{ actionId: 'cue_rearm', options: {} }], up: [] }],
 		feedbacks: [],
 	})
 
@@ -134,6 +146,60 @@ export function updatePresets(self: WareCueInstance): void {
 			steps: [{ down: [{ actionId: 'output_blackout', options: { output: ref, value: 'toggle' } }], up: [] }],
 			feedbacks: [{ feedbackId: 'output_blackout', options: { output: ref }, style: { bgcolor: BLACK, color: WHITE } }],
 		})
+	}
+
+	// --- Multi-View per output 1..4: preview scenes, TAKE, Swap ---
+	// Tap a scene to arm it in preview (teal), TAKE sends it to program (red).
+	// A scene that is both on program and in preview shows red, like a vision mixer.
+	for (let n = 1; n <= OUTPUT_COUNT; n += 1) {
+		const output = String(n)
+		const category = `Multi-View: Output ${n}`
+		add(`mv_${n}_take`, {
+			type: 'button',
+			category,
+			name: `Output ${n}: TAKE preview`,
+			style: { text: 'TAKE', size: '24', color: WHITE, bgcolor: TAKE_DIM },
+			steps: [{ down: [{ actionId: 'output_take', options: { output } }], up: [] }],
+			feedbacks: [{ feedbackId: 'output_take_ready', options: { output }, style: { bgcolor: RED, color: WHITE } }],
+		})
+		add(`mv_${n}_swap`, {
+			type: 'button',
+			category,
+			name: `Output ${n}: swap preview ↔ program`,
+			style: { text: 'SWAP', size: '18', color: WHITE, bgcolor: DARK },
+			steps: [{ down: [{ actionId: 'output_swap', options: { output } }], up: [] }],
+			feedbacks: [],
+		})
+		add(`mv_${n}_pgm`, {
+			type: 'button',
+			category,
+			name: `Output ${n}: program scene (display)`,
+			style: { text: `PGM ${n}\n$(warecue:output_${n}_scene)`, size: 'auto', color: WHITE, bgcolor: RED },
+			steps: [{ down: [], up: [] }],
+			feedbacks: [],
+		})
+		add(`mv_${n}_pvw`, {
+			type: 'button',
+			category,
+			name: `Output ${n}: preview scene (display)`,
+			style: { text: `PVW ${n}\n$(warecue:output_${n}_preview)`, size: 'auto', color: BLACK, bgcolor: TEAL },
+			steps: [{ down: [], up: [] }],
+			feedbacks: [],
+		})
+		for (let s = 1; s <= SCENE_COUNT; s += 1) {
+			const scene = String(s)
+			add(`mv_${n}_scene_${s}`, {
+				type: 'button',
+				category,
+				name: `Output ${n}: preview scene ${s}`,
+				style: { text: `PVW\nSCN ${s}`, size: '14', color: WHITE, bgcolor: DARK },
+				steps: [{ down: [{ actionId: 'output_preview', options: { output, scene } }], up: [] }],
+				feedbacks: [
+					{ feedbackId: 'output_scene_preview', options: { output, scene }, style: { bgcolor: TEAL, color: BLACK } },
+					{ feedbackId: 'output_scene_active', options: { output, scene }, style: { bgcolor: RED, color: WHITE } },
+				],
+			})
+		}
 	}
 
 	// --- Timer: transport, adjust, and absolute set (the app's panel) ---

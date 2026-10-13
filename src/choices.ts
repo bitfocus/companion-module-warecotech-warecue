@@ -1,6 +1,6 @@
 import type { DropdownChoice } from '@companion-module/base'
 import type { WareCueInstance } from './main'
-import type { FeedbackCue, FeedbackOutput } from './state'
+import type { FeedbackCue, FeedbackOutput, FeedbackScene } from './state'
 
 const NONE: DropdownChoice = { id: '', label: '(connect to WareCue)' }
 
@@ -47,12 +47,41 @@ export function resolveOutput(self: WareCueInstance, ref: string): FeedbackOutpu
 	return self.state.outputs.find((o) => o.id === needle || String(o.index) === needle || o.name === needle)
 }
 
-/** Resolve a scene ref (name, 1-based index, or id) to its current name. */
-export function resolveSceneName(self: WareCueInstance, ref: string): string | undefined {
+/**
+ * Resolve a scene ref to the scene, in the same priority order as WareCue's
+ * own `resolveRef` (id, then name case-insensitively, then 1-based position),
+ * so a button lights the same scene it takes.
+ */
+export function resolveScene(self: WareCueInstance, ref: string): FeedbackScene | undefined {
 	const needle = ref.trim()
 	if (!needle) return undefined
-	const scene = self.state.scenes.find((s) => s.name === needle || String(s.index) === needle || s.id === needle)
-	return scene?.name
+	const scenes = self.state.scenes
+	const lower = needle.toLowerCase()
+	return (
+		scenes.find((s) => s.id === needle) ??
+		scenes.find((s) => s.name.toLowerCase() === lower) ??
+		(/^\d+$/.test(needle) ? scenes.find((s) => s.index === Number(needle)) : undefined)
+	)
+}
+
+/** Resolve a scene ref (id, name, or 1-based index) to its current name. */
+export function resolveSceneName(self: WareCueInstance, ref: string): string | undefined {
+	return resolveScene(self, ref)?.name
+}
+
+/** The scene armed in Companion's Multi-View preview for this output, if any. */
+export function previewSceneOf(self: WareCueInstance, output: FeedbackOutput): FeedbackScene | undefined {
+	const id = self.previewByOutput.get(output.id)
+	return id ? self.state.scenes.find((s) => s.id === id) : undefined
+}
+
+/**
+ * Preview can go to program when one is armed, it differs from program, and
+ * the output is not following another — the app's own `canTakePreview` rule.
+ */
+export function canTakePreview(self: WareCueInstance, output: FeedbackOutput): boolean {
+	const preview = previewSceneOf(self, output)
+	return !!preview && !output.parentOutputId && preview.id !== output.activeSceneId
 }
 
 /**

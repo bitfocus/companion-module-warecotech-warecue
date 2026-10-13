@@ -1,5 +1,6 @@
 import type { CompanionVariableDefinition, CompanionVariableValues } from '@companion-module/base'
 import type { WareCueInstance } from './main'
+import { previewSceneOf } from './choices'
 
 export function updateVariables(self: WareCueInstance): void {
 	const defs: CompanionVariableDefinition[] = [
@@ -20,6 +21,7 @@ export function updateVariables(self: WareCueInstance): void {
 		defs.push(
 			{ variableId: `output_${o.index}_name`, name: `Output ${o.index} name` },
 			{ variableId: `output_${o.index}_scene`, name: `Output ${o.index} active scene` },
+			{ variableId: `output_${o.index}_preview`, name: `Output ${o.index} preview scene (next TAKE)` },
 			{ variableId: `output_${o.index}_enabled`, name: `Output ${o.index} enabled (on/off)` },
 			{ variableId: `output_${o.index}_blackout`, name: `Output ${o.index} blackout (on/off)` },
 		)
@@ -55,6 +57,7 @@ export function setVariableValues(self: WareCueInstance): void {
 	for (const o of s.outputs) {
 		values[`output_${o.index}_name`] = o.name
 		values[`output_${o.index}_scene`] = o.activeSceneName ?? '—'
+		values[`output_${o.index}_preview`] = previewSceneOf(self, o)?.name ?? '—'
 		values[`output_${o.index}_enabled`] = o.enabled ? 'on' : 'off'
 		values[`output_${o.index}_blackout`] = o.blackout ? 'on' : 'off'
 	}

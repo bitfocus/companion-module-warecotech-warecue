@@ -4,8 +4,12 @@ import {
 	BUS_CHOICES,
 	TOGGLE_CHOICES,
 	cueChoices,
+	canTakePreview,
 	outputChoices,
+	previewSceneOf,
 	resolveCueIndex,
+	resolveOutput,
+	resolveScene,
 	sceneChoices,
 	timerChoices,
 } from './choices'
@@ -54,6 +58,38 @@ export function updateActions(self: WareCueInstance): void {
 			options: [outputField, sceneField],
 			callback: async (ev) =>
 				void self.send('output.scene', { outputId: await str(ev, 'output'), sceneRef: await str(ev, 'scene') }),
+		},
+		output_preview: {
+			name: 'Output: preview (arm) scene',
+			description: 'Load a scene into the Multi-View preview for this output — TAKE then sends it to program.',
+			options: [outputField, sceneField],
+			callback: async (ev) => {
+				const output = resolveOutput(self, await str(ev, 'output'))
+				const scene = resolveScene(self, await str(ev, 'scene'))
+				if (output && scene) self.setPreview(output.id, scene.id)
+			},
+		},
+		output_take: {
+			name: 'Output: TAKE preview',
+			description: 'Send the armed preview scene to program, using its enter transition (the Multi-View TAKE button).',
+			options: [outputField],
+			callback: async (ev) => {
+				const output = resolveOutput(self, await str(ev, 'output'))
+				if (!output || !canTakePreview(self, output)) return
+				void self.send('output.scene', { outputId: output.id, sceneRef: previewSceneOf(self, output)!.id })
+			},
+		},
+		output_swap: {
+			name: 'Output: swap preview ↔ program',
+			description: 'Take the preview scene and arm the scene that was on program (the Multi-View Swap button).',
+			options: [outputField],
+			callback: async (ev) => {
+				const output = resolveOutput(self, await str(ev, 'output'))
+				if (!output || !output.activeSceneId || !canTakePreview(self, output)) return
+				const programId = output.activeSceneId
+				void self.send('output.scene', { outputId: output.id, sceneRef: previewSceneOf(self, output)!.id })
+				self.setPreview(output.id, programId)
+			},
 		},
 		output_next: {
 			name: 'Output: next scene',
@@ -147,6 +183,12 @@ export function updateActions(self: WareCueInstance): void {
 			description: 'Snap standby back to the next enabled cue after the on-air cue.',
 			options: [],
 			callback: async () => void self.send('cue.syncStandby'),
+		},
+		cue_rearm: {
+			name: 'Cue: re-arm live cue',
+			description: 'Fade the live cue to black and arm it again — the next GO plays it from the start.',
+			options: [],
+			callback: async () => void self.send('cue.rearm'),
 		},
 		cue_pause: {
 			name: 'Cue: pause',
