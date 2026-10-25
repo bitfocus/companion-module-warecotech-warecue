@@ -3,10 +3,10 @@
 	"name": "warecotech-warecue",
 	"shortname": "WareCue",
 	"description": "Scene playout and multi-display show control for WareCue",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"license": "MIT",
-	"repository": "git+https://github.com/warecotech/companion-module-warecotech-warecue.git",
-	"bugs": "https://github.com/warecotech/companion-module-warecotech-warecue/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-warecotech-warecue.git",
+	"bugs": "https://github.com/bitfocus/companion-module-warecotech-warecue/issues",
 	"maintainers": [
 		{
 			"name": "WareCo.Tech",
@@ -15,9 +15,9 @@
 	],
 	"legacyIds": [],
 	"runtime": {
-		"type": "node18",
+		"type": "node22",
 		"api": "nodejs-ipc",
-		"apiVersion": "1.12.0",
+		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
 	"manifestVersion": "1.0.0",

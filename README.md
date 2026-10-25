@@ -9,10 +9,11 @@ See [`companion/HELP.md`](companion/HELP.md) for setup, actions, feedbacks, vari
 ## Development
 
 ```sh
-npm install
-npm run build        # bundles + validates the manifest, writes pkg/ and a .tgz
-npm run lint         # prettier --check + tsc --noEmit
-npm run dev          # rebuild on change
+corepack enable      # once — provides the pinned yarn 4
+yarn install
+yarn package         # bundles + validates the manifest, writes pkg/ and a .tgz
+yarn lint            # prettier --check + tsc --noEmit
+yarn dev             # rebuild on change
 ```
 
 - Source is TypeScript in `src/`; `src/main.ts` is the entry.
@@ -23,7 +24,7 @@ npm run dev          # rebuild on change
 
 Companion loads unpublished modules from a folder on disk — there's no upload step for dev builds.
 
-1. Get a **built** copy of the module (the `pkg/` output, not raw source). Either run `npm run build` locally, or download the **`warecue-module`** artifact from the latest green [Actions run](../../actions) and unzip it.
+1. Get a **built** copy of the module (the `pkg/` output, not raw source). Either run `yarn package` locally, or download the **`warecue-module`** artifact from the latest green [Actions run](../../actions) and unzip it.
 2. Put it in a folder, e.g. `~/companion-dev-modules/warecotech-warecue/`.
 3. In Companion: **Settings → Developer modules path** → point it at `~/companion-dev-modules/`.
 4. Add the **WareCue** connection (see [`companion/HELP.md`](companion/HELP.md)) and point it at a running WareCue.

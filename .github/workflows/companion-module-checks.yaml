@@ -1,0 +1,19 @@
+name: Companion Module Checks
+
+on:
+  push:
+
+jobs:
+  check:
+    name: Check module
+
+    # Bitfocus's shared workflow pins its job to `packages: read`, so it can only
+    # check out a public repo: run it in the bitfocus copy, not private mirrors.
+    if: ${{ github.repository_owner == 'bitfocus' && !contains(github.repository, 'companion-module-template-') }}
+
+    permissions:
+      packages: read
+
+    uses: bitfocus/actions/.github/workflows/module-checks.yaml@main
+    # with:
+    #   upload-artifact: true # uncomment this to upload the built package as an artifact to this workflow that you can download and share with others

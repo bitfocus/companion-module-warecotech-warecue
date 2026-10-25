@@ -42,13 +42,14 @@ jobs:
         if: steps.version.outputs.exists == 'false'
         with:
           node-version: 22
-          cache: npm
       - if: steps.version.outputs.exists == 'false'
-        run: npm ci
+        run: corepack enable
       - if: steps.version.outputs.exists == 'false'
-        run: npm run lint
+        run: yarn install --immutable
       - if: steps.version.outputs.exists == 'false'
-        run: npm run build
+        run: yarn lint
+      - if: steps.version.outputs.exists == 'false'
+        run: yarn package
       - name: Tag and publish release
         if: steps.version.outputs.exists == 'false'
         env:

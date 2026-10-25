@@ -151,3 +151,6 @@ vite.config.ts.timestamp-*
 # Companion build output
 pkg/
 *.tgz
+
+# yarn 4
+/.yarn
