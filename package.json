@@ -1,15 +1,18 @@
 {
 	"name": "companion-module-warecotech-warecue",
-	"version": "1.1.1",
-	"main": "src/main.ts",
+	"version": "1.1.2",
+	"main": "dist/main.js",
+	"type": "module",
 	"description": "Companion module for WareCue — scene playout and multi-display show control",
 	"scripts": {
-		"build": "tsc --noEmit",
-		"package": "companion-module-build",
-		"dev": "companion-module-build --watch",
-		"lint": "prettier --check . && tsc --noEmit",
-		"format": "prettier --write .",
-		"typecheck": "tsc --noEmit"
+		"postinstall": "husky",
+		"format": "prettier -w .",
+		"package": "run build && companion-module-build",
+		"build": "rimraf dist && run build:main",
+		"build:main": "tsc -p tsconfig.build.json",
+		"dev": "tsc -p tsconfig.build.json --watch",
+		"lint:raw": "eslint",
+		"lint": "run lint:raw ."
 	},
 	"license": "MIT",
 	"repository": {
@@ -20,7 +23,7 @@
 		"url": "https://github.com/bitfocus/companion-module-warecotech-warecue/issues"
 	},
 	"engines": {
-		"node": ">=22",
+		"node": "^22.20",
 		"yarn": "^4"
 	},
 	"dependencies": {
@@ -29,11 +32,24 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.8.0",
-		"@types/node": "^18.19.0",
+		"@types/node": "^22.19.3",
 		"@types/ws": "^8.5.12",
-		"prettier": "^3.3.3",
-		"typescript": "~5.4.5"
+		"eslint": "^9.39.2",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.7",
+		"prettier": "^3.7.4",
+		"rimraf": "^6.1.2",
+		"typescript": "~5.9.3",
+		"typescript-eslint": "^8.51.0"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
+	"lint-staged": {
+		"*.{css,json,md,scss}": [
+			"prettier --write"
+		],
+		"*.{ts,tsx,js,jsx}": [
+			"yarn lint:raw --fix"
+		]
+	},
 	"packageManager": "yarn@4.18.1"
 }

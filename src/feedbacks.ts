@@ -1,5 +1,10 @@
-import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
-import type { WareCueInstance } from './main'
+import {
+	combineRgb,
+	type CompanionFeedbackBooleanEvent,
+	type CompanionFeedbackContext,
+	type CompanionFeedbackDefinitions,
+} from '@companion-module/base'
+import type { WareCueInstance } from './main.js'
 import {
 	canTakePreview,
 	cueChoices,
@@ -8,10 +13,10 @@ import {
 	resolveCue,
 	resolveOutput,
 	resolveScene,
-	resolveSceneName,
 	sceneChoices,
 	timerChoices,
-} from './choices'
+	cueRefOf,
+} from './choices.js'
 
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
@@ -19,6 +24,14 @@ const GREEN = combineRgb(0, 153, 51)
 const RED = combineRgb(204, 0, 0)
 const AMBER = combineRgb(204, 128, 0)
 const TEAL = combineRgb(0, 170, 150)
+
+// Read an option, expanding any $(…) variables through the feedback's own
+// context — which also makes Companion re-check it when those variables change.
+const opt = async (
+	context: CompanionFeedbackContext,
+	fb: CompanionFeedbackBooleanEvent,
+	key: string,
+): Promise<string> => (await context.parseVariablesInString(String(fb.options[key] ?? ''))).trim()
 
 export function updateFeedbacks(self: WareCueInstance): void {
 	const outputField = {
@@ -33,7 +46,7 @@ export function updateFeedbacks(self: WareCueInstance): void {
 		id: 'scene',
 		type: 'dropdown' as const,
 		label: 'Scene',
-		default: self.state.scenes[0]?.name ?? '',
+		default: self.state.scenes[0]?.id ?? '',
 		choices: sceneChoices(self),
 		allowCustom: true,
 	}
@@ -45,10 +58,10 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			description: 'True when the given scene is the active scene on the given output.',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [outputField, sceneOption],
-			callback: (fb) => {
-				const output = resolveOutput(self, String(fb.options.output ?? ''))
-				const wanted = resolveSceneName(self, String(fb.options.scene ?? '')) ?? String(fb.options.scene ?? '')
-				return !!output && output.activeSceneName === wanted
+			callback: async (fb, context) => {
+				const output = resolveOutput(self, await opt(context, fb, 'output'))
+				const scene = resolveScene(self, await opt(context, fb, 'scene'))
+				return !!output && !!scene && output.activeSceneId === scene.id
 			},
 		},
 		output_scene_preview: {
@@ -57,9 +70,9 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			description: 'True when the given scene is armed in the Multi-View preview for the given output.',
 			defaultStyle: { bgcolor: TEAL, color: BLACK },
 			options: [outputField, sceneOption],
-			callback: (fb) => {
-				const output = resolveOutput(self, String(fb.options.output ?? ''))
-				const scene = resolveScene(self, String(fb.options.scene ?? ''))
+			callback: async (fb, context) => {
+				const output = resolveOutput(self, await opt(context, fb, 'output'))
+				const scene = resolveScene(self, await opt(context, fb, 'scene'))
 				return !!output && !!scene && previewSceneOf(self, output)?.id === scene.id
 			},
 		},
@@ -69,8 +82,8 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			description: 'True when a preview scene is armed, differs from program, and the output is not following another.',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [outputField],
-			callback: (fb) => {
-				const output = resolveOutput(self, String(fb.options.output ?? ''))
+			callback: async (fb, context) => {
+				const output = resolveOutput(self, await opt(context, fb, 'output'))
 				return !!output && canTakePreview(self, output)
 			},
 		},
@@ -79,21 +92,21 @@ export function updateFeedbacks(self: WareCueInstance): void {
 			name: 'Output: blackout is on',
 			defaultStyle: { bgcolor: BLACK, color: WHITE },
 			options: [outputField],
-			callback: (fb) => resolveOutput(self, String(fb.options.output ?? ''))?.blackout === true,
+			callback: async (fb, context) => resolveOutput(self, await opt(context, fb, 'output'))?.blackout === true,
 		},
 		output_enabled: {
 			type: 'boolean',
 			name: 'Output: is enabled (on air)',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [outputField],
-			callback: (fb) => resolveOutput(self, String(fb.options.output ?? ''))?.enabled === true,
+			callback: async (fb, context) => resolveOutput(self, await opt(context, fb, 'output'))?.enabled === true,
 		},
 		output_display_missing: {
 			type: 'boolean',
 			name: 'Output: display unplugged',
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			options: [outputField],
-			callback: (fb) => resolveOutput(self, String(fb.options.output ?? ''))?.displayMissing === true,
+			callback: async (fb, context) => resolveOutput(self, await opt(context, fb, 'output'))?.displayMissing === true,
 		},
 		cue_is_standby: {
 			type: 'boolean',
@@ -105,13 +118,13 @@ export function updateFeedbacks(self: WareCueInstance): void {
 					id: 'cue',
 					type: 'dropdown',
 					label: 'Cue',
-					default: self.state.cues[0]?.name ?? '',
+					default: self.state.cues[0] ? cueRefOf(self.state.cues[0]) : '',
 					choices: cueChoices(self),
 					allowCustom: true,
 				},
 			],
-			callback: (fb) => {
-				const cue = resolveCue(self, String(fb.options.cue ?? ''))
+			callback: async (fb, context) => {
+				const cue = resolveCue(self, await opt(context, fb, 'cue'))
 				return !!cue && !!self.state.standbyCueId && cue.id === self.state.standbyCueId
 			},
 		},
@@ -125,13 +138,13 @@ export function updateFeedbacks(self: WareCueInstance): void {
 					id: 'cue',
 					type: 'dropdown',
 					label: 'Cue',
-					default: self.state.cues[0]?.name ?? '',
+					default: self.state.cues[0] ? cueRefOf(self.state.cues[0]) : '',
 					choices: cueChoices(self),
 					allowCustom: true,
 				},
 			],
-			callback: (fb) => {
-				const cue = resolveCue(self, String(fb.options.cue ?? ''))
+			callback: async (fb, context) => {
+				const cue = resolveCue(self, await opt(context, fb, 'cue'))
 				return !!cue && !!self.state.playheadCueId && cue.id === self.state.playheadCueId
 			},
 		},
@@ -156,8 +169,8 @@ export function updateFeedbacks(self: WareCueInstance): void {
 					allowCustom: true,
 				},
 			],
-			callback: (fb) => {
-				const ref = String(fb.options.timer ?? '').trim()
+			callback: async (fb, context) => {
+				const ref = (await opt(context, fb, 'timer')).trim()
 				const timer = self.state.timers.find((t) => t.id === ref || String(t.index) === ref || t.name === ref)
 				return timer?.running === true
 			},

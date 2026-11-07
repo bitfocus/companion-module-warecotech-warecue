@@ -1,6 +1,6 @@
 import type { DropdownChoice } from '@companion-module/base'
-import type { WareCueInstance } from './main'
-import type { FeedbackCue, FeedbackOutput, FeedbackScene } from './state'
+import type { WareCueInstance } from './main.js'
+import type { FeedbackCue, FeedbackOutput, FeedbackScene } from './state.js'
 
 const NONE: DropdownChoice = { id: '', label: '(connect to WareCue)' }
 
@@ -10,16 +10,23 @@ export function outputChoices(self: WareCueInstance): DropdownChoice[] {
 }
 
 export function sceneChoices(self: WareCueInstance): DropdownChoice[] {
-	const list = self.state.scenes.map((s) => ({ id: s.name, label: `${s.index}: ${s.name}` }))
+	// Stored by id: two scenes may share a name.
+	const list = self.state.scenes.map((s) => ({ id: s.id, label: `${s.index}: ${s.name}` }))
 	return list.length ? list : [NONE]
 }
 
 export function cueChoices(self: WareCueInstance): DropdownChoice[] {
+	// Stored by cue number (unique in a stack), else the cue's id: names repeat.
 	const list = self.state.cues.map((c) => ({
-		id: c.name,
+		id: cueRefOf(c),
 		label: c.num ? `${c.num} — ${c.name}` : c.name,
 	}))
 	return list.length ? list : [NONE]
+}
+
+/** The stable value a cue dropdown stores for a cue. */
+export function cueRefOf(cue: FeedbackCue): string {
+	return cue.num || cue.id
 }
 
 export function timerChoices(self: WareCueInstance): DropdownChoice[] {
@@ -62,11 +69,6 @@ export function resolveScene(self: WareCueInstance, ref: string): FeedbackScene 
 		scenes.find((s) => s.name.toLowerCase() === lower) ??
 		(/^\d+$/.test(needle) ? scenes.find((s) => s.index === Number(needle)) : undefined)
 	)
-}
-
-/** Resolve a scene ref (id, name, or 1-based index) to its current name. */
-export function resolveSceneName(self: WareCueInstance, ref: string): string | undefined {
-	return resolveScene(self, ref)?.name
 }
 
 /** The scene armed in Companion's Multi-View preview for this output, if any. */

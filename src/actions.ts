@@ -1,5 +1,5 @@
 import type { CompanionActionDefinitions, CompanionActionEvent } from '@companion-module/base'
-import type { WareCueInstance } from './main'
+import type { WareCueInstance } from './main.js'
 import {
 	BUS_CHOICES,
 	TOGGLE_CHOICES,
@@ -12,7 +12,8 @@ import {
 	resolveScene,
 	sceneChoices,
 	timerChoices,
-} from './choices'
+	cueRefOf,
+} from './choices.js'
 
 export function updateActions(self: WareCueInstance): void {
 	// Parse a dropdown/custom value, expanding any $(…) variables it contains.
@@ -32,7 +33,7 @@ export function updateActions(self: WareCueInstance): void {
 		id: 'scene',
 		type: 'dropdown' as const,
 		label: 'Scene',
-		default: self.state.scenes[0]?.name ?? '',
+		default: self.state.scenes[0]?.id ?? '',
 		choices: sceneChoices(self),
 		allowCustom: true,
 	}
@@ -135,7 +136,7 @@ export function updateActions(self: WareCueInstance): void {
 					id: 'cue',
 					type: 'dropdown',
 					label: 'Cue',
-					default: self.state.cues[0]?.name ?? '',
+					default: self.state.cues[0] ? cueRefOf(self.state.cues[0]) : '',
 					choices: cueChoices(self),
 					allowCustom: true,
 				},
@@ -168,7 +169,7 @@ export function updateActions(self: WareCueInstance): void {
 					id: 'cue',
 					type: 'dropdown',
 					label: 'Cue',
-					default: self.state.cues[0]?.name ?? '',
+					default: self.state.cues[0] ? cueRefOf(self.state.cues[0]) : '',
 					choices: cueChoices(self),
 					allowCustom: true,
 				},
@@ -268,7 +269,10 @@ export function updateActions(self: WareCueInstance): void {
 			name: 'Timer: set message',
 			options: [timerField, { id: 'message', type: 'textinput', label: 'Message', default: '', useVariables: true }],
 			callback: async (ev) =>
-				void self.send('timer.message', { timerRef: await str(ev, 'timer'), message: await str(ev, 'message') }),
+				void self.send('timer.message', {
+					timerRef: await str(ev, 'timer'),
+					message: String(ev.options.message ?? ''),
+				}),
 		},
 	}
 

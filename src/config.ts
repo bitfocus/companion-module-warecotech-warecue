@@ -3,7 +3,11 @@ import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 export interface ModuleConfig {
 	host: string
 	port: number
-	token: string
+}
+
+/** Kept out of the plain config, so it is masked in the UI and left out of exports. */
+export interface ModuleSecrets {
+	token?: string
 }
 
 export function getConfigFields(): SomeCompanionConfigField[] {
@@ -34,7 +38,7 @@ export function getConfigFields(): SomeCompanionConfigField[] {
 			max: 65535,
 		},
 		{
-			type: 'textinput',
+			type: 'secret-text',
 			id: 'token',
 			label: 'Auth token (optional)',
 			width: 12,
@@ -45,5 +49,5 @@ export function getConfigFields(): SomeCompanionConfigField[] {
 }
 
 export function defaultConfig(): ModuleConfig {
-	return { host: '127.0.0.1', port: 8090, token: '' }
+	return { host: '127.0.0.1', port: 8090 }
 }

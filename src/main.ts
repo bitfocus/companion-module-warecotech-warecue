@@ -1,15 +1,16 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, type SomeCompanionConfigField } from '@companion-module/base'
-import { defaultConfig, getConfigFields, type ModuleConfig } from './config'
-import { WareCueConnection, type ConnStatus } from './connection'
-import { emptyState, type FeedbackState } from './state'
-import { UpgradeScripts } from './upgrades'
-import { updateActions } from './actions'
-import { updateFeedbacks } from './feedbacks'
-import { setVariableValues, updateVariables } from './variables'
-import { updatePresets } from './presets'
+import { defaultConfig, getConfigFields, type ModuleConfig, type ModuleSecrets } from './config.js'
+import { WareCueConnection, type ConnStatus } from './connection.js'
+import { emptyState, type FeedbackState } from './state.js'
+import { UpgradeScripts } from './upgrades.js'
+import { updateActions } from './actions.js'
+import { updateFeedbacks } from './feedbacks.js'
+import { setVariableValues, updateVariables } from './variables.js'
+import { updatePresets } from './presets.js'
 
-export class WareCueInstance extends InstanceBase<ModuleConfig> {
+export class WareCueInstance extends InstanceBase<ModuleConfig, ModuleSecrets> {
 	config: ModuleConfig = defaultConfig()
+	secrets: ModuleSecrets = {}
 	state: FeedbackState = emptyState()
 	connection: WareCueConnection | null = null
 	/**
@@ -20,11 +21,12 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 	 */
 	previewByOutput = new Map<string, string>()
 	#membershipKey = ''
+	#lastStatus = ''
 
-	async init(config: ModuleConfig): Promise<void> {
+	async init(config: ModuleConfig, _isFirstInit: boolean, secrets: ModuleSecrets): Promise<void> {
 		this.config = config
-		this.updateStatus(InstanceStatus.Connecting)
-		this.#rebuildDefinitions()
+		this.secrets = secrets ?? {}
+		this.#onStatus('connecting')
 		this.#connect()
 	}
 
@@ -33,8 +35,9 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 		this.connection = null
 	}
 
-	async configUpdated(config: ModuleConfig): Promise<void> {
+	async configUpdated(config: ModuleConfig, secrets: ModuleSecrets): Promise<void> {
 		this.config = config
+		this.secrets = secrets ?? {}
 		this.#connect()
 	}
 
@@ -42,9 +45,11 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 		return getConfigFields()
 	}
 
-	send(command: string, args?: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
-		if (!this.connection) return Promise.resolve({ ok: false, error: 'not connected' })
-		return this.connection.send(command, args)
+	/** Send a command; a failure (offline, timed out, refused) is logged so a dead button press leaves a trace. */
+	async send(command: string, args?: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+		const result = this.connection ? await this.connection.send(command, args) : { ok: false, error: 'not connected' }
+		if (!result.ok) this.log('warn', `${command} failed: ${result.error ?? 'refused'}`)
+		return result
 	}
 
 	/** Arm (or clear) an output's preview scene and refresh what shows it. */
@@ -57,10 +62,21 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 
 	#connect(): void {
 		this.connection?.destroy()
+		this.connection = null
 		this.state = emptyState()
 		this.previewByOutput.clear()
 		this.#membershipKey = ''
-		this.connection = new WareCueConnection(this.config.host, this.config.port ?? 8090, this.config.token ?? '', {
+		// Clear the previous WareCue's show from buttons, variables and dropdowns now,
+		// rather than when the first state message arrives from the new host.
+		this.#rebuildDefinitions()
+		this.checkFeedbacks()
+
+		const host = (this.config.host ?? '').trim()
+		if (!host) {
+			this.#onStatus('badconfig', 'Host is not set')
+			return
+		}
+		this.connection = new WareCueConnection(host, this.config.port ?? 8090, this.secrets.token ?? '', {
 			onState: (s) => this.#onState(s),
 			onStatus: (st, msg) => this.#onStatus(st, msg),
 			log: (level, message) => this.log(level, message),
@@ -68,7 +84,11 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 		this.connection.connect()
 	}
 
+	/** Forward a status (and the `connection` variable) only when it changes: state frames arrive every tick. */
 	#onStatus(status: ConnStatus, message?: string): void {
+		const key = `${status}|${message ?? ''}`
+		if (key === this.#lastStatus) return
+		this.#lastStatus = key
 		switch (status) {
 			case 'ok':
 				this.updateStatus(InstanceStatus.Ok)
@@ -77,6 +97,7 @@ export class WareCueInstance extends InstanceBase<ModuleConfig> {
 				this.updateStatus(InstanceStatus.Connecting)
 				break
 			case 'unauthorized':
+			case 'badconfig':
 				this.updateStatus(InstanceStatus.BadConfig, message)
 				break
 			default:

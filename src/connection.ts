@@ -1,7 +1,14 @@
 import WebSocket from 'ws'
-import { isFeedbackState, type FeedbackState } from './state'
+import { isFeedbackState, type FeedbackState } from './state.js'
 
-export type ConnStatus = 'connecting' | 'ok' | 'disconnected' | 'unauthorized'
+export type ConnStatus = 'connecting' | 'ok' | 'disconnected' | 'unauthorized' | 'badconfig'
+
+/** A WebSocket message frame as text, whichever buffer shape `ws` hands over. */
+function rawToText(raw: WebSocket.RawData): string {
+	if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8')
+	if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8')
+	return raw.toString('utf8')
+}
 
 export interface ConnectionHandlers {
 	onState: (state: FeedbackState) => void
@@ -52,7 +59,8 @@ export class WareCueConnection {
 		try {
 			ws = new WebSocket(url, { headers })
 		} catch (err) {
-			this.#handlers.log('error', `WebSocket construction failed: ${String(err)}`)
+			// A malformed host or port: say so in the status instead of retrying silently.
+			this.#handlers.onStatus('badconfig', `Cannot connect to ${this.#url}: ${String(err)}`)
 			this.#scheduleReconnect()
 			return
 		}
@@ -64,7 +72,7 @@ export class WareCueConnection {
 			this.#raw({ command: 'state.get' })
 		})
 
-		ws.on('message', (raw) => this.#onMessage(raw.toString()))
+		ws.on('message', (raw) => this.#onMessage(rawToText(raw)))
 
 		ws.on('close', (code) => {
 			if (code === 4401) {
@@ -94,7 +102,7 @@ export class WareCueConnection {
 
 		if (msg.type === 'hello') {
 			this.#handlers.onStatus('ok')
-			this.#handlers.log('info', `WareCue says hello (${String(msg.app ?? 'WareCue')})`)
+			this.#handlers.log('info', `WareCue says hello (${typeof msg.app === 'string' ? msg.app : 'WareCue'})`)
 			return
 		}
 
@@ -111,19 +119,18 @@ export class WareCueConnection {
 				if (pending) {
 					clearTimeout(pending.timer)
 					this.#pending.delete(id)
-					pending.resolve({ ok: msg.ok === true, error: (msg.error as string) ?? undefined })
+					pending.resolve({ ok: msg.ok === true, error: typeof msg.error === 'string' ? msg.error : undefined })
 				}
 			}
-			if (msg.ok === false) this.#handlers.log('warn', `command refused: ${String(msg.error)}`)
 			return
 		}
 	}
 
 	/** Send a command and resolve when WareCue acknowledges it. */
-	send(command: string, args: Record<string, unknown> = {}): Promise<{ ok: boolean; error?: string }> {
+	async send(command: string, args: Record<string, unknown> = {}): Promise<{ ok: boolean; error?: string }> {
 		const ws = this.#ws
 		if (!ws || ws.readyState !== WebSocket.OPEN) {
-			return Promise.resolve({ ok: false, error: 'not connected' })
+			return { ok: false, error: 'not connected' }
 		}
 		const id = this.#nextId++
 		return new Promise((resolve) => {

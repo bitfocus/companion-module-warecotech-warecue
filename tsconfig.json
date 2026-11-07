@@ -1,17 +1,8 @@
 {
+	"extends": "./tsconfig.build.json",
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules/**"],
 	"compilerOptions": {
-		"target": "es2022",
-		"module": "esnext",
-		"moduleResolution": "bundler",
-		"lib": ["es2022"],
-		"types": ["node"],
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noEmit": true
-	},
-	"include": ["src/**/*.ts"]
+		"types": ["node" /* , "jest" ] // uncomment this if using jest */]
+	}
 }

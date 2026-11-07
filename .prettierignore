@@ -1,6 +1,2 @@
-pkg/
-*.tgz
-node_modules/
-package-lock.json
-yarn.lock
-.yarn/
+package.json
+/LICENSE.md

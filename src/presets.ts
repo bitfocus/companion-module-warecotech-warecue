@@ -3,7 +3,7 @@ import {
 	type CompanionButtonPresetDefinition,
 	type CompanionPresetDefinitions,
 } from '@companion-module/base'
-import type { WareCueInstance } from './main'
+import type { WareCueInstance } from './main.js'
 
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
@@ -174,7 +174,7 @@ export function updatePresets(self: WareCueInstance): void {
 			type: 'button',
 			category,
 			name: `Output ${n}: program scene (display)`,
-			style: { text: `PGM ${n}\n$(warecue:output_${n}_scene)`, size: 'auto', color: WHITE, bgcolor: RED },
+			style: { text: `PGM ${n}\n$(${self.label}:output_${n}_scene)`, size: 'auto', color: WHITE, bgcolor: RED },
 			steps: [{ down: [], up: [] }],
 			feedbacks: [],
 		})
@@ -182,7 +182,7 @@ export function updatePresets(self: WareCueInstance): void {
 			type: 'button',
 			category,
 			name: `Output ${n}: preview scene (display)`,
-			style: { text: `PVW ${n}\n$(warecue:output_${n}_preview)`, size: 'auto', color: BLACK, bgcolor: TEAL },
+			style: { text: `PVW ${n}\n$(${self.label}:output_${n}_preview)`, size: 'auto', color: BLACK, bgcolor: TEAL },
 			steps: [{ down: [], up: [] }],
 			feedbacks: [],
 		})

@@ -8,7 +8,7 @@ Control [WareCue](https://warecue.com) — scene playout and multi-display show 
 2. In Companion, add this connection and fill in:
    - **WareCue host / IP** — the machine running WareCue (e.g. `192.168.1.50`, or `127.0.0.1` if on the same PC).
    - **WebSocket port** — default `8090`.
-   - **Auth token** — only if WareCue has one set; otherwise leave blank.
+   - **Auth token** — only if WareCue has one set; otherwise leave blank. It is stored as a secret, so it is hidden in the settings and left out of config exports.
 
 The connection turns green once WareCue says hello. It reconnects automatically if WareCue restarts.
 

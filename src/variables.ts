@@ -1,6 +1,6 @@
 import type { CompanionVariableDefinition, CompanionVariableValues } from '@companion-module/base'
-import type { WareCueInstance } from './main'
-import { previewSceneOf } from './choices'
+import type { WareCueInstance } from './main.js'
+import { previewSceneOf } from './choices.js'
 
 export function updateVariables(self: WareCueInstance): void {
 	const defs: CompanionVariableDefinition[] = [
